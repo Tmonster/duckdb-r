@@ -5,7 +5,11 @@ set -x
 
 cd `dirname $0`
 
-duckdir=../duckdb
+if [ -z "$1" ]; then
+  duckdir=../duckdb
+else
+  duckdir=$1
+fi
 
 if [ -n "$(git status --porcelain)" ]; then
   echo "Error: working directory not clean"
