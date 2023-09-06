@@ -70,7 +70,6 @@ test_that("single value factors round trip correctly, issue 2627", {
   expect_identical(df1, df2)
 })
 
-
 test_that("huge-cardinality factors do not cause strange crashes, issue 3639", {
   con <- dbConnect(duckdb())
   on.exit(dbDisconnect(con, shutdown = TRUE))
@@ -78,4 +77,83 @@ test_that("huge-cardinality factors do not cause strange crashes, issue 3639", {
   set.seed(123)
   df <- data.frame(col1 = factor(sample(5000, 10^6, replace = TRUE)))
   duckdb_register(con, "df", df)
+})
+
+test_that("int factors behave like strings during comparisons", {
+  con <- dbConnect(duckdb::duckdb())
+  invisible(dbExecute(con, "CREATE MACRO \"==\"(a, b) AS a = b"))
+  df1 <- data.frame(a = c("a", "b"), b = factor(c("1", "2")))
+
+  rel1 <- rel_from_df(con, df1)
+
+  rel2 <- rel_filter(
+    rel1,
+    list(
+      expr_function(
+        "==",
+        list(expr_reference("b"), expr_constant(1))
+      )
+    )
+  )
+
+  result <- data.frame(a = c("a"), b=factor(c("1"), levels=c("1", "2")))
+  duckdb_result <- rel_to_altrep(rel2)
+
+  expect_equal(result, duckdb_result)
+
+
+  rel_factor_string_compare <- rel_filter(
+    rel1,
+    list(
+      expr_function(
+        "==",
+        list(expr_reference("b"),  expr_constant("1"))
+      )
+    )
+  )
+
+  result <- data.frame(a = c("a"), b=factor(c("1"), levels=c("1", "2")))
+  duckdb_result <- rel_to_altrep(rel_factor_string_compare)
+
+  expect_equal(result, duckdb_result)
+})
+
+test_that("double factors behave like strings during comparisons", {
+  con <- dbConnect(duckdb::duckdb())
+  invisible(dbExecute(con, "CREATE MACRO \"==\"(a, b) AS a = b"))
+  df1 <- data.frame(a = c("a", "b"), b = factor(c("1.123", "2.345")))
+
+  rel1 <- rel_from_df(con, df1)
+
+  rel1_filter <- rel_filter(
+    rel1,
+    list(
+      expr_function(
+        "==",
+        list(expr_reference("b"), expr_constant(1.123))
+      )
+    )
+  )
+
+  result <- data.frame(a = c("a"), b=factor(c("1.123"), levels=c("1.123", "2.345")))
+  duckdb_result <- rel_to_altrep(rel1_filter)
+
+  expect_equal(result, duckdb_result)
+
+  df2 <- data.frame(a = c("a", "b", "c"), b = factor(c("1.123", "2.345", "1.123")), c=(c(1.123, 2.345, 5.678)))
+  rel2 <- rel_from_df(con, df2)
+  rel_factor_string_compare <- rel_filter(
+    rel2,
+    list(
+      expr_function(
+        "==",
+        list(expr_reference("b"),  expr_reference("c"))
+      )
+    )
+  )
+
+  result <- data.frame(a = c("a", "b"), b=factor(c("1.123", "2.345", levels=c("1.123", "2.345"))), c=(c(1.123, 2.345)))
+  duckdb_result <- rel_to_altrep(rel_factor_string_compare)
+
+  expect_equal(result, duckdb_result)
 })
