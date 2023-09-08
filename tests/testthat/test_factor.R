@@ -81,6 +81,8 @@ test_that("huge-cardinality factors do not cause strange crashes, issue 3639", {
 
 test_that("int factors behave like strings during comparisons", {
   con <- dbConnect(duckdb::duckdb())
+  on.exit(dbDisconnect(con, shutdown = TRUE))
+
   invisible(dbExecute(con, "CREATE MACRO \"==\"(a, b) AS a = b"))
   df1 <- data.frame(a = c("a", "b"), b = factor(c("1", "2")))
 
@@ -120,6 +122,8 @@ test_that("int factors behave like strings during comparisons", {
 
 test_that("double factors behave like strings during comparisons", {
   con <- dbConnect(duckdb::duckdb())
+  on.exit(dbDisconnect(con, shutdown = TRUE))
+  
   invisible(dbExecute(con, "CREATE MACRO \"==\"(a, b) AS a = b"))
   df1 <- data.frame(a = c("a", "b"), b = factor(c("1.123", "2.345")))
 
@@ -152,7 +156,7 @@ test_that("double factors behave like strings during comparisons", {
     )
   )
 
-  result <- data.frame(a = c("a", "b"), b=factor(c("1.123", "2.345", levels=c("1.123", "2.345"))), c=(c(1.123, 2.345)))
+  result <- data.frame(a = c("a", "b"), b=factor(c("1.123", "2.345"), levels=c("1.123", "2.345")), c=(c(1.123, 2.345)))
   duckdb_result <- rel_to_altrep(rel_factor_string_compare)
 
   expect_equal(result, duckdb_result)
