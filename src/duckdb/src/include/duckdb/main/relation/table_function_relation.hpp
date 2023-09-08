@@ -22,6 +22,7 @@ public:
 	                      shared_ptr<Relation> input_relation_p = nullptr, bool auto_init = true);
 
 	string name;
+	string alias;
 	vector<Value> parameters;
 	named_parameter_map_t named_parameters;
 	vector<ColumnDefinition> columns;
@@ -34,6 +35,7 @@ public:
 	const vector<ColumnDefinition> &Columns() override;
 	string ToString(idx_t depth) override;
 	string GetAlias() override;
+	void SetAlias(string alias_p);
 	void AddNamedParameter(const string &name, Value argument);
 
 private:

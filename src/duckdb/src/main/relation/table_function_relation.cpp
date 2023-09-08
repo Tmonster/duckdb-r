@@ -19,7 +19,7 @@ void TableFunctionRelation::AddNamedParameter(const string &name, Value argument
 TableFunctionRelation::TableFunctionRelation(const std::shared_ptr<ClientContext> &context, string name_p,
                                              vector<Value> parameters_p, named_parameter_map_t named_parameters,
                                              shared_ptr<Relation> input_relation_p, bool auto_init)
-    : Relation(context, RelationType::TABLE_FUNCTION_RELATION), name(std::move(name_p)),
+    : Relation(context, RelationType::TABLE_FUNCTION_RELATION), name(std::move(name_p)), alias(""),
       parameters(std::move(parameters_p)), named_parameters(std::move(named_parameters)),
       input_relation(std::move(input_relation_p)), auto_initialize(auto_init) {
 	InitializeColumns();
@@ -45,6 +45,10 @@ unique_ptr<QueryNode> TableFunctionRelation::GetQueryNode() {
 	result->select_list.push_back(make_uniq<StarExpression>());
 	result->from_table = GetTableRef();
 	return std::move(result);
+}
+
+void TableFunctionRelation::SetAlias(string alias_p) {
+	alias = alias_p;
 }
 
 unique_ptr<TableRef> TableFunctionRelation::GetTableRef() {
@@ -74,6 +78,7 @@ unique_ptr<TableRef> TableFunctionRelation::GetTableRef() {
 	auto table_function = make_uniq<TableFunctionRef>();
 	auto function = make_uniq<FunctionExpression>(name, std::move(children));
 	table_function->function = std::move(function);
+	table_function->alias = alias;
 	return std::move(table_function);
 }
 

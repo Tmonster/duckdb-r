@@ -2,6 +2,7 @@
 #include "duckdb.hpp"
 #include "typesr.hpp"
 #include "rapi.hpp"
+#include <iostream>
 
 #include "R_ext/Random.h"
 
@@ -133,7 +134,14 @@ external_pointer<T> make_external_prot(const string &rclass, SEXP prot, ARGS &&.
 	                                (int32_t)(NumericLimits<int32_t>::Maximum() * unif_rand()));
 	auto rel =
 	    con->conn->TableFunction("r_dataframe_scan", {Value::POINTER((uintptr_t)(SEXP)df)}, other_params)->Alias(alias);
-
+	
+	if (df.names().size() == 0) {
+		stop("blah");
+	}
+	if (rel->type == RelationType::TABLE_FUNCTION_RELATION) {
+		auto &wat = rel->Cast<TableFunctionRelation>();
+		wat.SetAlias(df.names()[0]);
+	}
 	cpp11::writable::list prot = {df};
 
 	auto res = sexp(make_external_prot<RelationWrapper>("duckdb_relation", prot, std::move(rel)));
