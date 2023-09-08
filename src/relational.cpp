@@ -27,6 +27,8 @@
 #include "duckdb/main/relation/distinct_relation.hpp"
 #include "duckdb/main/relation/table_function_relation.hpp"
 
+#include "duckdb/common/enum_util.hpp"
+
 #include "duckdb/common/enums/joinref_type.hpp"
 
 using namespace duckdb;
@@ -130,18 +132,28 @@ external_pointer<T> make_external_prot(const string &rclass, SEXP prot, ARGS &&.
 
 	named_parameter_map_t other_params;
 	other_params["experimental"] = Value::BOOLEAN(experimental);
-	auto alias = StringUtil::Format("dataframe_%d_%d", (uintptr_t)(SEXP)df,
-	                                (int32_t)(NumericLimits<int32_t>::Maximum() * unif_rand()));
-	auto rel =
-	    con->conn->TableFunction("r_dataframe_scan", {Value::POINTER((uintptr_t)(SEXP)df)}, other_params)->Alias(alias);
-	
+	string alias = "";
 	if (df.names().size() == 0) {
 		stop("blah");
+	} else {
+		auto all_names = df.names();
+		alias = all_names[0];
 	}
-	if (rel->type == RelationType::TABLE_FUNCTION_RELATION) {
-		auto &wat = rel->Cast<TableFunctionRelation>();
-		wat.SetAlias(df.names()[0]);
-	}
+
+//	auto alias = StringUtil::Format("dataframe_%d_%d", (uintptr_t)(SEXP)df,
+//	                                 (int32_t)(NumericLimits<int32_t>::Maximum() * unif_rand()));
+	auto rel =
+	    con->conn->TableFunction("r_dataframe_scan", {Value::POINTER((uintptr_t)(SEXP)df)}, other_params);
+
+
+	// if (rel->type == RelationType::TABLE_FUNCTION_RELATION) {
+	// 	auto &wat = rel->Cast<TableFunctionRelation>();
+	// 	auto name = df.names();
+	// 	wat.SetAlias(name[0]);
+	// }
+	// else {
+	// 	std::cout << "rel->type = " << EnumUtil::ToString(rel->type) << std::endl;
+	// }
 	cpp11::writable::list prot = {df};
 
 	auto res = sexp(make_external_prot<RelationWrapper>("duckdb_relation", prot, std::move(rel)));

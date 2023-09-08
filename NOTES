@@ -1,0 +1,26 @@
+Connection::TableFunction(const string &fname, cons)
+
+
+
+
+
+
+TableFunctionRelation.cpp has a toString method that did not include printing the alias. Maybe that will help?
+
+code to test with
+"""
+library(duckdb)
+con <- DBI::dbConnect(duckdb::duckdb())
+experimental <- FALSE
+invisible(DBI::dbExecute(con, "CREATE MACRO \"==\"(a, b) AS a = b"))
+df1 <- data.frame(a = 1)
+
+rel1 <- duckdb:::rel_from_df(con, df1, experimental = experimental)
+
+sql <- duckdb:::rel_to_sql(rel1)
+"""
+
+
+one big problem here is that to ToString() function for the Function relation is static.
+So you need to pass any extra information you want to print. This could prove to be to much
+

@@ -57,6 +57,7 @@ unique_ptr<TableRef> TableFunctionRelation::GetTableRef() {
 		auto subquery = make_uniq<SubqueryExpression>();
 		subquery->subquery = make_uniq<SelectStatement>();
 		subquery->subquery->node = input_relation->GetQueryNode();
+		subquery->subquery->node.alias = "WHATEVER 2";
 		subquery->subquery_type = SubqueryType::SCALAR;
 		children.push_back(std::move(subquery));
 	}
@@ -99,6 +100,9 @@ string TableFunctionRelation::ToString(idx_t depth) {
 		function_call += parameters[i].ToString();
 	}
 	function_call += ")";
+	if (!alias.empty()) {
+		function_call += " AS " + alias;
+	}
 	return RenderWhitespace(depth) + function_call;
 }
 

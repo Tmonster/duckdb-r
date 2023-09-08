@@ -109,6 +109,10 @@ public:
 		}
 		result += ")";
 
+		if (!alias.empty()) {
+			result += " AS " + alias;
+		}
+
 		// filtered aggregate
 		if (filter) {
 			result += " FILTER (WHERE " + filter->ToString() + ")";
