@@ -6,6 +6,8 @@
 #include "duckdb/common/types/interval.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 
+#include "iostream"
+
 using namespace duckdb;
 
 RType::RType() : id_(RTypeId::UNKNOWN) {
@@ -265,7 +267,7 @@ string RApiTypes::DetectLogicalType(const LogicalType &stype, const char *caller
 	if (stype.GetAlias() == R_STRING_TYPE_NAME) {
 		return "character";
 	}
-
+    std::cout << stype.ToString() << std::endl;
 	switch (stype.id()) {
 	case LogicalTypeId::BOOLEAN:
 		return "logical";
@@ -301,6 +303,7 @@ string RApiTypes::DetectLogicalType(const LogicalType &stype, const char *caller
 		return "raw";
 	case LogicalTypeId::LIST:
 		return "list";
+	case LogicalTypeId::MAP:
 	case LogicalTypeId::STRUCT:
 		return "data.frame";
 	case LogicalTypeId::ENUM:

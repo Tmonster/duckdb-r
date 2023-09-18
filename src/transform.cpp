@@ -1,5 +1,6 @@
 #include "rapi.hpp"
 #include "typesr.hpp"
+#include "iostream"
 #include "duckdb/common/types/uuid.hpp"
 
 using namespace duckdb;
@@ -64,6 +65,16 @@ SEXP duckdb_r_allocate(const LogicalType &type, idx_t nrows) {
 		dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(nrows)};
 
 		return dest_list;
+	}
+	case LogicalTypeId::MAP: {
+		// in R a list is also a map.
+//		const auto key_type = MapType::KeyType(type);
+//		const auto value_type = MapType::ValueType(type);
+		// get number of entries. store them in a "const char *names[] = {"xname", "yname", ""};"
+		// object. Then call & return what's below. If possible.
+//		return PROTECT(Rf_mkNamed(VECSXP, names));
+		return NEW_LIST(nrows);
+
 	}
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::UUID:
@@ -140,6 +151,7 @@ void duckdb_r_decorate(const LogicalType &type, const SEXP dest, bool integer64)
 	case LogicalTypeId::BLOB:
 	case LogicalTypeId::UUID:
 	case LogicalTypeId::LIST:
+	case LogicalTypeId::MAP:
 		break; // no extra decoration required, do nothing
 	case LogicalTypeId::TIMESTAMP_SEC:
 	case LogicalTypeId::TIMESTAMP_MS:
@@ -410,6 +422,38 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
 			duckdb_r_transform(*struct_child, child_dest, dest_offset, n, integer64);
 		}
 
+		break;
+	}
+	case LogicalTypeId::MAP: {
+
+		const auto &keys = MapVector::GetKeys(src_vec);
+		auto &values = MapVector::GetValues(src_vec);
+
+		const char *names[] = {
+		for ()
+
+		auto value_type = values.GetType();
+		Vector value_vector(value_type, nullptr);
+
+		// actual loop over rows, set
+		// n = 1 (only 1 map for a specific entry).
+		for (size_t row_idx = 0; row_idx < n; row_idx++) {
+			if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
+				SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
+			} else {
+				auto end = 2;
+				value_vector.Slice(values, row_idx, row_idx+2);
+				value_vector.Print();
+
+				// transform the list child vector to a single R SEXP
+				cpp11::sexp list_element = duckdb_r_allocate(value_type, 2);
+				duckdb_r_transform(value_vector, list_element, 0, 2, integer64);
+				// call R's own extract subset method
+				Rf_mkNamed(VECSXP, keys);
+
+				// loop through every element and call SET_ATTR.
+			}
+		}
 		break;
 	}
 	case LogicalTypeId::BLOB: {
