@@ -67,14 +67,24 @@ SEXP duckdb_r_allocate(const LogicalType &type, idx_t nrows) {
 		return dest_list;
 	}
 	case LogicalTypeId::MAP: {
-		// in R a list is also a map.
-//		const auto key_type = MapType::KeyType(type);
-//		const auto value_type = MapType::ValueType(type);
-		// get number of entries. store them in a "const char *names[] = {"xname", "yname", ""};"
-		// object. Then call & return what's below. If possible.
-//		return PROTECT(Rf_mkNamed(VECSXP, names));
-		return NEW_LIST(nrows);
+		cpp11::writable::list dest_list;
 
+		auto value_type = MapType::ValueType(type);
+		auto name = "hellp";
+//		for (const auto &child : StructType::GetChildTypes(type)) {
+//			const auto &name = child.first;
+//			const auto &child_type = child.second;
+
+			cpp11::sexp dest_child = duckdb_r_allocate(value_type, nrows);
+			dest_list.push_back(cpp11::named_arg(name) = std::move(dest_child));
+//		}
+
+		// Note we cannot use cpp11's data frame here as it tries to calculate the number of rows itself,
+		// but gives the wrong answer if the first column is another data frame or the struct is empty.
+		dest_list.attr(R_ClassSymbol) = RStrings::get().dataframe_str;
+		dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(nrows)};
+
+		return dest_list;
 	}
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::UUID:
@@ -185,7 +195,6 @@ void duckdb_r_decorate(const LogicalType &type, const SEXP dest, bool integer64)
 
 		break;
 	}
-
 	case LogicalTypeId::ENUM: {
 		auto &str_vec = EnumType::GetValuesInsertOrder(type);
 		auto size = EnumType::GetSize(type);
@@ -425,41 +434,60 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
 		break;
 	}
 	case LogicalTypeId::MAP: {
-
-		const auto &keys = MapVector::GetKeys(src_vec);
-		auto &values = MapVector::GetValues(src_vec);
-
-		// set up value vector
+        const auto &keys = MapVector::GetKeys(src_vec);
+        auto &values = MapVector::GetValues(src_vec);
 		auto value_type = values.GetType();
+
 		Vector value_vector(value_type, nullptr);
+		// it's very similar to a struct here. The problem is how to go about the key and value vectors
+		// Structs have children and you can easily recursively work there, but here we have a vector of one
+		// list if I'm not mistaken, and the list can only have one element. 
+		values.Flatten(2);
+		for (size_t i = 0; i < 2; i++) {
+			Vector value_vector(value_type, nullptr);
+			value_vector.Slice(values, i, i+1);
 
-		// actual loop over rows,
-		// TODO: how do I get the number of vector entries for the value vector?
-		//! n is 1, I think it's because the map is just 1 object, so there is an expectation
-		//! that only 1 dest vector is needed. But with only 1 dest vector you can't name each element (I think).
-		// n = 1 (only 1 map for a specific entry).
-		for (size_t row_idx = 0; row_idx < 2; row_idx++) {
-			if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
-				SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
-			} else {
-                // calculate the location of the value,
-				value_vector.Slice(values, row_idx, row_idx+1);
-
-				// transform the list child vector to a single R SEXP
-				cpp11::sexp list_element = duckdb_r_allocate(value_type, 1);
-				duckdb_r_transform(value_vector, list_element, 0, 1, integer64);
-				// call R's own extract subset method
-				SET_ELEMENT(dest, dest_offset + row_idx, list_element);
-				// if row_idx > 1, then you get the following error,
-				//  Error in rapi_execute(res@stmt_lst$ref, res@arrow, res@connection@driver@bigint ==  :
-				//  attempt to set index 1/1 in SET_VECTOR_ELT
-
-                // Rf_mkNamed(VECSXP, keys);
-
-				// should we call SET_ATTR?
-			}
+			const auto &new_value = values.GetValue(i);
+            SEXP child_dest = VECTOR_ELT(dest, i);
+			duckdb_r_transform(value_vector, child_dest, dest_offset, n, integer64);
 		}
+
+
 		break;
+//
+
+//
+//		// set up value vector
+//		auto value_type = values.GetType();
+//		Vector value_vector(value_type, nullptr);
+//
+//		// actual loop over rows,
+//		// TODO: how do I get the number of vector entries for the value vector?
+//		//! n is 1, I think it's because the map is just 1 object, so there is an expectation
+//		//! that only 1 dest vector is needed. But with only 1 dest vector you can't name each element (I think).
+//		// n = 1 (only 1 map for a specific entry).
+//		for (size_t row_idx = 0; row_idx < n; row_idx++) {
+//			if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
+//				SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
+//			} else {
+//                // calculate the location of the value,
+//				value_vector.Slice(values, row_idx, row_idx+1);
+//
+//				// allocate a list child vector with length 1
+//				cpp11::sexp list_element = duckdb_r_allocate(value_type, 1);
+//				duckdb_r_transform(value_vector, list_element, 0, 1, integer64);
+//				// call R's own extract subset method
+//				SET_ELEMENT(dest, dest_offset + row_idx, list_element);
+//				// if row_idx > 1, then you get the following error,
+//				//  Error in rapi_execute(res@stmt_lst$ref, res@arrow, res@connection@driver@bigint ==  :
+//				//  attempt to set index 1/1 in SET_VECTOR_ELT
+//
+//                // Rf_mkNamed(VECSXP, keys);
+//
+//				// should we call SET_ATTR?
+//			}
+//		}
+//		break;
 	}
 	case LogicalTypeId::BLOB: {
 		auto src_ptr = FlatVector::GetData<string_t>(src_vec);
