@@ -429,29 +429,34 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
 		const auto &keys = MapVector::GetKeys(src_vec);
 		auto &values = MapVector::GetValues(src_vec);
 
-		const char *names[] = {
-		for ()
-
+		// set up value vector
 		auto value_type = values.GetType();
 		Vector value_vector(value_type, nullptr);
 
-		// actual loop over rows, set
+		// actual loop over rows,
+		// TODO: how do I get the number of vector entries for the value vector?
+		//! n is 1, I think it's because the map is just 1 object, so there is an expectation
+		//! that only 1 dest vector is needed. But with only 1 dest vector you can't name each element (I think).
 		// n = 1 (only 1 map for a specific entry).
-		for (size_t row_idx = 0; row_idx < n; row_idx++) {
+		for (size_t row_idx = 0; row_idx < 2; row_idx++) {
 			if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
 				SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
 			} else {
-				auto end = 2;
-				value_vector.Slice(values, row_idx, row_idx+2);
-				value_vector.Print();
+                // calculate the location of the value,
+				value_vector.Slice(values, row_idx, row_idx+1);
 
 				// transform the list child vector to a single R SEXP
-				cpp11::sexp list_element = duckdb_r_allocate(value_type, 2);
-				duckdb_r_transform(value_vector, list_element, 0, 2, integer64);
+				cpp11::sexp list_element = duckdb_r_allocate(value_type, 1);
+				duckdb_r_transform(value_vector, list_element, 0, 1, integer64);
 				// call R's own extract subset method
-				Rf_mkNamed(VECSXP, keys);
+				SET_ELEMENT(dest, dest_offset + row_idx, list_element);
+				// if row_idx > 1, then you get the following error,
+				//  Error in rapi_execute(res@stmt_lst$ref, res@arrow, res@connection@driver@bigint ==  :
+				//  attempt to set index 1/1 in SET_VECTOR_ELT
 
-				// loop through every element and call SET_ATTR.
+                // Rf_mkNamed(VECSXP, keys);
+
+				// should we call SET_ATTR?
 			}
 		}
 		break;

@@ -18,6 +18,7 @@
 #include "fsst.h"
 #include "duckdb/common/types/bit.hpp"
 #include "duckdb/common/types/value_map.hpp"
+#include "iostream"
 
 #include "duckdb/common/serializer/serializer.hpp"
 #include "duckdb/common/serializer/deserializer.hpp"
@@ -683,11 +684,15 @@ string Vector::ToString() const {
 		break;
 	}
 	retval += "]";
+
 	return retval;
 }
 
 void Vector::Print() const {
+	auto ret = ToString();
+	std::cout << ret << std::endl;
 	Printer::Print(ToString());
+
 }
 // LCOV_EXCL_STOP
 
