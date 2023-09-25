@@ -69,15 +69,17 @@ SEXP duckdb_r_allocate(const LogicalType &type, idx_t nrows) {
 	case LogicalTypeId::MAP: {
 		cpp11::writable::list dest_list;
 
-		auto value_type = MapType::ValueType(type);
-		auto name = "hellp";
-//		for (const auto &child : StructType::GetChildTypes(type)) {
-//			const auto &name = child.first;
-//			const auto &child_type = child.second;
 
-			cpp11::sexp dest_child = duckdb_r_allocate(value_type, nrows);
-			dest_list.push_back(cpp11::named_arg(name) = std::move(dest_child));
-//		}
+		auto value_type = MapType::ValueType(type);
+		auto name1 = "key1";
+        auto name2 = "key2";
+
+
+        cpp11::sexp dest_child1 = duckdb_r_allocate(value_type, 1);
+        dest_list.push_back(cpp11::named_arg(name1) = std::move(dest_child1));
+
+        cpp11::sexp dest_child2 = duckdb_r_allocate(value_type, 1);
+        dest_list.push_back(cpp11::named_arg(name2) = std::move(dest_child2));
 
 		// Note we cannot use cpp11's data frame here as it tries to calculate the number of rows itself,
 		// but gives the wrong answer if the first column is another data frame or the struct is empty.
@@ -438,20 +440,27 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
         auto &values = MapVector::GetValues(src_vec);
 		auto value_type = values.GetType();
 
-		Vector value_vector(value_type, nullptr);
-		// it's very similar to a struct here. The problem is how to go about the key and value vectors
-		// Structs have children and you can easily recursively work there, but here we have a vector of one
-		// list if I'm not mistaken, and the list can only have one element.
-		values.Flatten(2);
-		for (size_t i = 0; i < 2; i++) {
-			Vector value_vector(value_type, nullptr);
-			value_vector.Slice(values, i, i+1);
+        SEXP child_dest = VECTOR_ELT(dest, 0);
+        duckdb_r_transform(values, child_dest, dest_offset, 1, integer64);
 
-			const auto &new_value = values.GetValue(i);
-            SEXP child_dest = VECTOR_ELT(dest, i);
-			duckdb_r_transform(value_vector, child_dest, dest_offset, n, integer64);
-		}
+        SEXP child_dest2 = VECTOR_ELT(dest, 1);
+        duckdb_r_transform(values, child_dest2, dest_offset, 2, integer64);
 
+
+//
+//		Vector value_vector(value_type, nullptr);
+//		// it's very similar to a struct here. The problem is how to go about the key and value vectors
+//		// Structs have children and you can easily recursively work there, but here we have a vector of one
+//		// list if I'm not mistaken, and the list can only have one element.
+//		values.Flatten(2);
+//		for (size_t i = 0; i < 2; i++) {
+//			Vector value_vector(value_type, nullptr);
+//			value_vector.Slice(values, i, i+1);
+//
+//			const auto &new_value = values.GetValue(i);
+//            SEXP child_dest = VECTOR_ELT(dest, i);
+//			duckdb_r_transform(value_vector, child_dest, dest_offset, n, integer64);
+//		}
 
 		break;
 //
