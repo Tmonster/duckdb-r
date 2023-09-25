@@ -441,7 +441,7 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
 		Vector value_vector(value_type, nullptr);
 		// it's very similar to a struct here. The problem is how to go about the key and value vectors
 		// Structs have children and you can easily recursively work there, but here we have a vector of one
-		// list if I'm not mistaken, and the list can only have one element. 
+		// list if I'm not mistaken, and the list can only have one element.
 		values.Flatten(2);
 		for (size_t i = 0; i < 2; i++) {
 			Vector value_vector(value_type, nullptr);
