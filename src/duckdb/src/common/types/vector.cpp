@@ -690,7 +690,6 @@ string Vector::ToString() const {
 
 void Vector::Print() const {
 	auto ret = ToString();
-	std::cout << ret << std::endl;
 	Printer::Print(ToString());
 
 }

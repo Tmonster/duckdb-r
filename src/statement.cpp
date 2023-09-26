@@ -220,8 +220,6 @@ SEXP duckdb::duckdb_execute_R_impl(MaterializedQueryResult *result, bool integer
 
 	for (size_t col_idx = 0; col_idx < ncols; col_idx++) {
 
-		std::cout << "result type"  << result->types[col_idx].ToString() << std::endl;
-
 		cpp11::sexp varvalue = duckdb_r_allocate(result->types[col_idx], nrows);
 		duckdb_r_decorate(result->types[col_idx], varvalue, integer64);
 		SET_VECTOR_ELT(data_frame, col_idx, varvalue);

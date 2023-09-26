@@ -267,7 +267,7 @@ string RApiTypes::DetectLogicalType(const LogicalType &stype, const char *caller
 	if (stype.GetAlias() == R_STRING_TYPE_NAME) {
 		return "character";
 	}
-    std::cout << stype.ToString() << std::endl;
+
 	switch (stype.id()) {
 	case LogicalTypeId::BOOLEAN:
 		return "logical";

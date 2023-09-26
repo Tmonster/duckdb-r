@@ -70,22 +70,6 @@ SEXP duckdb_r_allocate(const LogicalType &type, idx_t nrows) {
 		cpp11::writable::list dest_list;
 
 
-		auto value_type = MapType::ValueType(type);
-		auto name1 = "key1";
-        auto name2 = "key2";
-
-
-        cpp11::sexp dest_child1 = duckdb_r_allocate(value_type, 1);
-        dest_list.push_back(cpp11::named_arg(name1) = std::move(dest_child1));
-
-        cpp11::sexp dest_child2 = duckdb_r_allocate(value_type, 1);
-        dest_list.push_back(cpp11::named_arg(name2) = std::move(dest_child2));
-
-		// Note we cannot use cpp11's data frame here as it tries to calculate the number of rows itself,
-		// but gives the wrong answer if the first column is another data frame or the struct is empty.
-		dest_list.attr(R_ClassSymbol) = RStrings::get().dataframe_str;
-		dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(nrows)};
-
 		return dest_list;
 	}
 	case LogicalTypeId::VARCHAR:
@@ -440,12 +424,33 @@ void duckdb_r_transform(Vector &src_vec, const SEXP dest, idx_t dest_offset, idx
         auto &values = MapVector::GetValues(src_vec);
 		auto value_type = values.GetType();
 
-        SEXP child_dest = VECTOR_ELT(dest, 0);
+        // get back the list
+        auto dest_list = (cpp11::writable::list)dest;
+
+        // hard code the first key name (for now)
+        auto name1 = "key1";
+        // allocate the value value
+        cpp11::sexp dest_child1 = duckdb_r_allocate(value_type, 1);
+        // push back the named index
+        dest_list.push_back(cpp11::named_arg(name1) = std::move(dest_child1));
+        // copy over the value
+        SEXP child_dest = VECTOR_ELT(dest_list, 0);
         duckdb_r_transform(values, child_dest, dest_offset, 1, integer64);
 
-        SEXP child_dest2 = VECTOR_ELT(dest, 1);
+        // hard code the first key name (for now)
+        auto name2 = "key2";
+        // allocate the value value
+        cpp11::sexp dest_child2 = duckdb_r_allocate(value_type, 1);
+        // push back the named index
+        dest_list.push_back(cpp11::named_arg(name2) = std::move(dest_child2));
+        // copy over the value
+        SEXP child_dest2 = VECTOR_ELT(dest_list, 1);
         duckdb_r_transform(values, child_dest2, dest_offset, 2, integer64);
 
+        // Note we cannot use cpp11's data frame here as it tries to calculate the number of rows itself,
+        // but gives the wrong answer if the first column is another data frame or the struct is empty.
+        dest_list.attr(R_ClassSymbol) = RStrings::get().dataframe_str;
+        dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(1)};
 
 //
 //		Vector value_vector(value_type, nullptr);
