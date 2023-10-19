@@ -327,9 +327,9 @@ bool constant_expression_is_not_null(duckdb::expr_extptr_t expr) {
 	} else if (join == "outer") {
 		join_type = JoinType::OUTER;
 	} else if (join == "semi") {
-		join_type = JoinType::SEMI;
+		join_type = JoinType::LEFT_SEMI;
 	} else if (join == "anti") {
-		join_type = JoinType::ANTI;
+		join_type = JoinType::LEFT_ANTI;
 	} else if (join == "cross" || ref_type == JoinRefType::POSITIONAL) {
 		if (ref_type != JoinRefType::POSITIONAL && ref_type != JoinRefType::CROSS) {
 			// users can only supply positional cross join, or cross join.
