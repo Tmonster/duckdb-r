@@ -319,6 +319,20 @@ shared_ptr<Relation> Relation::CreateView(const string &schema_name, const strin
 	return shared_from_this();
 }
 
+shared_ptr<Relation> Relation::CreateTable(const string &name) {
+	return CreateTable(INVALID_SCHEMA, name);
+}
+
+shared_ptr<Relation> Relation::CreateTable(const string &schema_name, const string &name) {
+	auto table_rel = make_shared<CreateTableRelation>(shared_from_this(), schema_name, name);
+	auto res = table_rel->Execute();
+	if (res->HasError()) {
+		const string prepended_message = "Failed to create view '" + name + "': ";
+		res->ThrowError(prepended_message);
+	}
+	return shared_from_this();
+}
+
 unique_ptr<QueryResult> Relation::Query(const string &sql) {
 	return context.GetContext()->Query(sql, false);
 }

@@ -27,8 +27,10 @@ using namespace duckdb;
 		parameter_map["integer64"] = Value::BOOLEAN(integer64);
 		parameter_map["experimental"] = Value::BOOLEAN(experimental);
 
+//		conn->conn->TableFunction("r_dataframe_scan", {Value::POINTER((uintptr_t)value.data())}, parameter_map)
+//		    ->CreateView(name, overwrite, true);
 		conn->conn->TableFunction("r_dataframe_scan", {Value::POINTER((uintptr_t)value.data())}, parameter_map)
-		    ->CreateView(name, overwrite, true);
+		    ->CreateTable(name);
 		static_cast<cpp11::sexp>(conn).attr("_registered_df_" + name) = value;
 	} catch (std::exception &e) {
 		cpp11::stop("rapi_register_df: Failed to register data frame: %s", e.what());

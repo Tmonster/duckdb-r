@@ -66,6 +66,8 @@ public:
 	DUCKDB_API shared_ptr<Relation> CreateView(const string &name, bool replace = true, bool temporary = false);
 	DUCKDB_API shared_ptr<Relation> CreateView(const string &schema_name, const string &name, bool replace = true,
 	                                           bool temporary = false);
+	DUCKDB_API shared_ptr<Relation> CreateTable(const string &name);
+	DUCKDB_API shared_ptr<Relation> CreateTable(const string &schema_name, const string &name);
 	DUCKDB_API unique_ptr<QueryResult> Query(const string &sql);
 	DUCKDB_API unique_ptr<QueryResult> Query(const string &name, const string &sql);
 
